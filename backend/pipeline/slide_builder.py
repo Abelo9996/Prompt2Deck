@@ -23,22 +23,31 @@ class SlideBuilder:
         """Initialize the slide builder."""
         self.themes = {
             "professional": {
-                "title_color": RGBColor(31, 56, 100),  # Dark blue
-                "text_color": RGBColor(64, 64, 64),    # Dark gray
+                "title_color": RGBColor(31, 56, 100),   # Deep navy blue
+                "text_color": RGBColor(64, 64, 64),     # Dark gray
                 "background": RGBColor(255, 255, 255),  # White
-                "accent": RGBColor(74, 144, 226)        # Blue
+                "accent": RGBColor(74, 144, 226),       # Professional blue
+                "title_size": 40,
+                "bullet_size": 18,
+                "title_bold": True
             },
             "modern": {
-                "title_color": RGBColor(41, 128, 185),  # Bright blue
-                "text_color": RGBColor(44, 62, 80),     # Dark slate
-                "background": RGBColor(236, 240, 241),  # Light gray
-                "accent": RGBColor(230, 126, 34)        # Orange
+                "title_color": RGBColor(255, 87, 51),   # Vibrant coral/orange
+                "text_color": RGBColor(33, 33, 33),     # Almost black
+                "background": RGBColor(250, 250, 250),  # Off-white
+                "accent": RGBColor(0, 230, 118),        # Bright green
+                "title_size": 48,
+                "bullet_size": 20,
+                "title_bold": False  # Modern = lighter weight
             },
             "minimal": {
-                "title_color": RGBColor(0, 0, 0),       # Black
-                "text_color": RGBColor(80, 80, 80),     # Gray
-                "background": RGBColor(255, 255, 255),  # White
-                "accent": RGBColor(100, 100, 100)       # Gray
+                "title_color": RGBColor(0, 0, 0),       # Pure black
+                "text_color": RGBColor(100, 100, 100),  # Medium gray
+                "background": RGBColor(255, 255, 255),  # Pure white
+                "accent": RGBColor(200, 200, 200),      # Light gray
+                "title_size": 36,
+                "bullet_size": 16,
+                "title_bold": False  # Minimal = no bold
             }
         }
     
@@ -89,6 +98,12 @@ class SlideBuilder:
         """Add a title slide to the presentation."""
         slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank layout
         
+        # Set background color
+        background = slide.background
+        fill = background.fill
+        fill.solid()
+        fill.fore_color.rgb = theme_colors["background"]
+        
         # Add title
         left = Inches(1)
         top = Inches(2.5)
@@ -102,8 +117,8 @@ class SlideBuilder:
         # Format title
         title_para = title_frame.paragraphs[0]
         title_para.alignment = PP_ALIGN.CENTER
-        title_para.font.size = Pt(54)
-        title_para.font.bold = True
+        title_para.font.size = Pt(theme_colors.get("title_size", 54))
+        title_para.font.bold = theme_colors.get("title_bold", True)
         title_para.font.color.rgb = theme_colors["title_color"]
         
         # Add subtitle if bullets exist
@@ -129,6 +144,42 @@ class SlideBuilder:
         """Add a content slide to the presentation."""
         slide = prs.slides.add_slide(prs.slide_layouts[6])  # Blank layout
         
+        # Set background color
+        background = slide.background
+        fill = background.fill
+        fill.solid()
+        fill.fore_color.rgb = theme_colors["background"]
+        
+        # Check if we have an image to add
+        has_image = slide_data.image_path and os.path.exists(slide_data.image_path)
+        
+        # Adjust layout based on whether we have an image
+        if has_image:
+            # Two-column layout: content on left, image on right
+            content_left = Inches(0.5)
+            content_width = Inches(5)
+            
+            # Add image on the right side
+            img_left = Inches(6)
+            img_top = Inches(2)
+            img_width = Inches(3.5)
+            img_height = Inches(4.5)
+            
+            try:
+                slide.shapes.add_picture(
+                    slide_data.image_path,
+                    img_left,
+                    img_top,
+                    width=img_width,
+                    height=img_height
+                )
+            except Exception as e:
+                print(f"Error adding image to slide: {e}")
+        else:
+            # Full-width layout when no image
+            content_left = Inches(0.8)
+            content_width = Inches(8.5)
+        
         # Add title
         title_box = slide.shapes.add_textbox(
             Inches(0.5), Inches(0.5), Inches(9), Inches(0.8)
@@ -137,14 +188,14 @@ class SlideBuilder:
         title_frame.text = slide_data.title
         
         title_para = title_frame.paragraphs[0]
-        title_para.font.size = Pt(36)
-        title_para.font.bold = True
+        title_para.font.size = Pt(theme_colors.get("title_size", 36))
+        title_para.font.bold = theme_colors.get("title_bold", True)
         title_para.font.color.rgb = theme_colors["title_color"]
         
         # Add bullets
         if slide_data.bullets:
             bullet_box = slide.shapes.add_textbox(
-                Inches(0.8), Inches(1.8), Inches(8.5), Inches(4.5)
+                content_left, Inches(1.8), content_width, Inches(4.5)
             )
             text_frame = bullet_box.text_frame
             text_frame.word_wrap = True
@@ -156,7 +207,7 @@ class SlideBuilder:
                 para = text_frame.paragraphs[i]
                 para.text = bullet
                 para.level = 0
-                para.font.size = Pt(20)
+                para.font.size = Pt(theme_colors.get("bullet_size", 20))
                 para.font.color.rgb = theme_colors["text_color"]
                 para.space_before = Pt(12)
         
